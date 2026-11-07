@@ -30,12 +30,19 @@ jobs:
 
       - name: Check project files
         run: |
-          echo "Checking Android project..."
+          echo "Checking project structure..."
           ls -la
           ls -la app
 
       - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace --info
+        run: |
+          set +e
+          gradle :app:assembleDebug --stacktrace > build-error.log 2>&1
+          RESULT=$?
+          echo "========== BUILD ERROR SUMMARY =========="
+          grep -n -A 12 -B 3 -E "What went wrong:|FAILURE:|Caused by:|error:" build-error.log | tail -100 || tail -60 build-error.log
+          echo "========== END ERROR SUMMARY =========="
+          exit $RESULT
 
       - name: Upload APK
         if: success()
@@ -44,10 +51,4 @@ jobs:
           name: esp-test-panel-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-
-      - name: Show build failure details
-        if: failure()
-        run: |
-          echo "BUILD FAILED"
-          echo "Check the Build debug APK step above."
           
